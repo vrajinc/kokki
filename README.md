@@ -1,386 +1,267 @@
-# Kokki 🪝
+# Kokki
 
-**Kokki** is a distributed GitHub hooks management tool that helps you easily setup and manage git hooks across your projects. It allows you to centralize your git hooks in a GitHub repository and distribute them to local development environments.
+**Distributed GitHub Hooks Management for Development Teams**
+
+Kokki centralizes git hooks in GitHub repositories and distributes them to local development environments. Teams can version-control their hooks and ensure consistent code quality across all developer workstations.
 
 _event sourced, hooks management tool_
 
 ## Features
 
-- 🚀 **Easy Setup**: Quickly setup local hooks directory
-- 🔄 **Sync from GitHub**: Automatically sync hooks from your GitHub repository
-- 📋 **List Available Hooks**: View all hooks available in your repository
-- ⚡ **Multiple Run Methods**: Run with either `clj` command or standalone JAR
-- 🔧 **Configurable**: Flexible configuration for different repositories and tokens
-- 📝 **CLI Interface**: User-friendly command-line interface with comprehensive help
+- **Multi-Provider Architecture**: SSH (via GitHub CLI/git) and PAT token authentication
+- **Centralized Hook Management**: Store hooks in `.github/hooks/` directory  
+- **Local Hook Installation**: Setup and sync hooks to local `.git/hooks/`
+- **Dual Execution**: Run with `clj` command or standalone JAR
+- **Custom Directories**: Configurable source and target hook directories
+- **Verbose Debugging**: Detailed authentication and operation logging
 
 ## Quick Start
 
-### Prerequisites
-
-- Java 8+ installed
-- Clojure CLI tools installed (for `clj` commands)
-- A GitHub repository with hooks stored in `.github/hooks/` directory
-- GitHub personal access token (for private repositories)
-
-### Installation
-
-Clone and build the project:
-
 ```bash
-git clone <your-repo-url>
-cd kokki
+# Build standalone JAR
 clj -T:uberjar
-```
 
-This will create `target/kokki.jar` - a standalone executable.
-
-## Usage
-
-### Authentication Methods
-
-Kokki supports two authentication methods:
-
-1. **GitHub Personal Access Token (PAT)** - Traditional token-based authentication
-2. **SSH Authentication** - Uses your SSH keys via GitHub CLI or git SSH
-
-### Running with Clojure CLI
-
-You can run kokki directly using the Clojure CLI:
-
-```bash
-# Show help
-clj -M:run --help
-
-# Setup hooks directory
-clj -M:run setup
-
-# Setup custom hooks directory
-clj -M:run setup -d ./my-hooks
-
-# Sync hooks using PAT token
-clj -M:run -r owner/repo -t github_token sync
-
-# Sync hooks using SSH authentication
-clj -M:run -r owner/repo --ssh sync
-
-# List available hooks using PAT token
-clj -M:run -r owner/repo -t github_token list
-
-# List available hooks using SSH authentication
-clj -M:run -r owner/repo --ssh list
-```
-
-### Running with JAR
-
-Alternatively, use the standalone JAR file:
-
-```bash
-# Show help
-java -jar target/kokki.jar --help
-
-# Setup hooks directory
+# Setup local hooks directory  
 java -jar target/kokki.jar setup
 
-# Setup custom hooks directory
-java -jar target/kokki.jar setup -d ./my-hooks
+# List hooks from GitHub repository (SSH)
+java -jar target/kokki.jar -r owner/repo --ssh list
 
-# Sync hooks using PAT token
-java -jar target/kokki.jar -r owner/repo -t github_token sync
-
-# Sync hooks using SSH authentication  
+# Sync all hooks to local .git/hooks/ (SSH)  
 java -jar target/kokki.jar -r owner/repo --ssh sync
 
-# List available hooks using PAT token
-java -jar target/kokki.jar -r owner/repo -t github_token list
-
-# List available hooks using SSH authentication
-java -jar target/kokki.jar -r owner/repo --ssh list
-java -jar target/kokki.jar -r owner/repo -t github_token list
+# Alternative with PAT token
+java -jar target/kokki.jar -r owner/repo -t ghp_xxxxx sync
 ```
 
-## Command Line Options
-
-```
-Options:
-  -h, --help                       Show help
-  -v, --verbose                    Verbose output
-  -r, --repo REPO                  GitHub repository (owner/repo)
-  -t, --token TOKEN                GitHub personal access token
-  -s, --ssh                        Use SSH authentication (via GitHub CLI or git)
-  -d, --hooks-dir DIR              Local hooks directory [default: .git/hooks]
-
-Actions:
-  setup    Setup local hooks directory
-  sync     Sync hooks from GitHub repository  
-  list     List available hooks
-  install  Install a specific hook
-```
-
-## Authentication
-
-### SSH Authentication (Recommended)
-
-SSH authentication is the most convenient method as it uses your existing SSH keys and doesn't require managing tokens.
-
-**Prerequisites:**
-- SSH keys set up with GitHub
-- Either GitHub CLI (`gh`) installed and authenticated, OR
-- Git configured with SSH access to GitHub
-
-**SSH Authentication Methods (in order of precedence):**
-
-1. **GitHub CLI** - If `gh` is installed and authenticated, kokki will use the GitHub CLI for API requests
-2. **Git SSH Clone** - If GitHub CLI is not available, kokki will clone the repository using SSH and extract hooks locally
+### Real Examples from Development
 
 ```bash
-# Setup SSH authentication
-ssh-keygen -t ed25519 -C "your_email@example.com"  # If you don't have SSH keys
-ssh-add ~/.ssh/id_ed25519                           # Add to SSH agent
-# Add public key to GitHub: https://github.com/settings/keys
+# List hooks from demo repository
+➜ clj -Scp target/kokki-standalone.jar -m kokki.app --src-dir "./demo-hooks/.github/hooks" list
 
-# Optional: Install and authenticate GitHub CLI for better performance
-gh auth login
+Available hooks:
+- pre-push.sh
+- pre-commit.sh  
+- commit-msg.sh
 
-# Use SSH authentication with kokki
+# Setup hooks directory
+➜ clj -Scp target/kokki-standalone.jar -m kokki.app --src-dir "./demo-hooks/.github/hooks" setup
+Performing :setup:done
+
+# List hooks from remote repository with SSH
+➜ clj -Scp target/kokki-standalone.jar -m kokki.app --ssh --repo "comcast-mcu/who" --src-dir "ops/hooks" list
+
+Available hooks:
+- pre-push
+```
+
+## Command Reference
+
+### Core Commands
+```bash
+setup    # Create local hooks directory structure
+list     # Display available hooks from repository  
+sync     # Download and install all hooks locally
+install  # Install specific hook by name
+```
+
+### Authentication Options
+```bash
+--ssh             # Use SSH keys (GitHub CLI or git clone)
+-t, --token       # GitHub Personal Access Token
+-r, --repo        # Repository in owner/repo format
+```
+
+### Directory Options  
+```bash
+-d, --hooks-dir   # Local hooks directory [default: .git/hooks]
+--src-dir         # Remote source directory [default: .github/hooks]
+```
+
+### Execution Methods
+```bash
+# Clojure CLI
 clj -M:run -r owner/repo --ssh sync
-clj -M:run -r owner/repo --ssh list
-```
 
-### Personal Access Token (PAT)
-
-Traditional token-based authentication for users who prefer not to use SSH.
-
-**Setup:**
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Generate a new token with `repo` scope (for private repos) or `public_repo` scope (for public repos)
-3. Use the token with the `-t` option
-
-```bash
-# Using PAT token
-clj -M:run -r owner/repo -t ghp_xxxxxxxxxxxx sync
-clj -M:run -r owner/repo -t ghp_xxxxxxxxxxxx list
+# Standalone JAR
+java -jar target/kokki.jar -r owner/repo --ssh sync
 ```
 
 ## Repository Structure
 
-For kokki to work, your GitHub repository should have the following structure:
+Store your team's git hooks in a GitHub repository:
 
 ```
-your-repo/
-├── .github/
-│   └── hooks/
-│       ├── pre-commit.sh
-│       ├── pre-push.sh
-│       ├── post-merge.sh
-│       └── commit-msg.sh
-└── ... (your project files)
+your-hooks-repo/
+├── .github/hooks/          # Default source directory
+│   ├── pre-commit.sh       # Runs before commits
+│   ├── pre-push.sh         # Runs before pushes  
+│   ├── commit-msg.sh       # Validates commit messages
+│   └── post-merge.sh       # Runs after merges
+├── ops/hooks/              # Custom source directory
+│   └── pre-push            # Hook without .sh extension
+└── README.md
 ```
 
-All hook files should be executable shell scripts (`.sh` files) stored in `.github/hooks/`.
+### Hook Examples from Demo Repository
 
-## Examples
+**pre-commit.sh** - Code quality checks:
+```bash
+#!/bin/bash
+# Check for TODO comments, console.log, large files
+if git diff --cached --name-only | grep -E "\.(js|py)$"; then
+    echo "Found staged files with potential issues"
+    exit 1
+fi
+```
 
-### Basic Workflow with SSH (Recommended)
+**commit-msg.sh** - Conventional commit validation:
+```bash
+#!/bin/bash
+# Validate: feat:, fix:, docs:, refactor:, test:, chore:
+if ! grep -qE "^(feat|fix|docs|refactor|test|chore):" "$1"; then
+    echo "Commit message must start with feat:, fix:, etc."
+    exit 1
+fi
+```
 
-1. **Setup SSH keys and GitHub CLI (optional but recommended):**
-   ```bash
-   # Setup SSH keys if you don't have them
-   ssh-keygen -t ed25519 -C "your_email@example.com"
-   ssh-add ~/.ssh/id_ed25519
-   
-   # Add public key to GitHub: https://github.com/settings/keys
-   
-   # Install GitHub CLI for better performance (optional)
-   gh auth login
-   ```
+**pre-push.sh** - Branch protection and testing:
+```bash
+#!/bin/bash
+# Prevent direct pushes to main/master
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current_branch" == "main" || "$current_branch" == "master" ]]; then
+    echo "Direct pushes to $current_branch are not allowed"
+    exit 1
+fi
+```
 
-2. **Setup a hooks directory:**
-   ```bash
-   clj -M:run setup
-   ```
+## Authentication Setup
 
-3. **List available hooks from your repository using SSH:**
-   ```bash
-   clj -M:run -r myorg/hooks-repo --ssh list
-   ```
+### SSH Authentication (Recommended)
 
-4. **Sync all hooks from repository using SSH:**
-   ```bash
-   clj -M:run -r myorg/hooks-repo --ssh sync
-   ```
-
-### Basic Workflow with PAT Token
-
-1. **Setup a hooks directory:**
-   ```bash
-   clj -M:run setup
-   ```
-
-2. **List available hooks from your repository:**
-   ```bash
-   clj -M:run -r myorg/hooks-repo -t ghp_xxxxxxxxxxxx list
-   ```
-
-3. **Sync all hooks from repository:**
-   ```bash
-   clj -M:run -r myorg/hooks-repo -t ghp_xxxxxxxxxxxx sync
-   ```
-
-### Using Environment Variables
-
-You can set environment variables to avoid typing tokens repeatedly:
+Uses existing SSH keys without token management:
 
 ```bash
-# For PAT tokens
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
-export HOOKS_REPO=myorg/hooks-repo
+# 1. Generate SSH key (if needed)
+ssh-keygen -t ed25519 -C "your_email@example.com"
+ssh-add ~/.ssh/id_ed25519
 
-# Now you can run commands without specifying token/repo
-clj -M:run -r $HOOKS_REPO -t $GITHUB_TOKEN sync
+# 2. Add public key to GitHub settings
+cat ~/.ssh/id_ed25519.pub  
+# Copy output to: https://github.com/settings/keys
 
-# For SSH authentication, you only need the repo
-export HOOKS_REPO=myorg/hooks-repo
-clj -M:run -r $HOOKS_REPO --ssh sync
+# 3. Install GitHub CLI (optional, improves performance)
+brew install gh && gh auth login
+
+# 4. Use with Kokki
+java -jar target/kokki.jar -r owner/repo --ssh sync
 ```
 
-### Custom Hooks Directory
+### Personal Access Token
+
+Traditional token authentication:
 
 ```bash
-# Setup hooks in a custom directory
-clj -M:run setup -d ./project-hooks
-
-# Sync to custom directory using SSH
-clj -M:run -r myorg/hooks-repo --ssh -d ./project-hooks sync
-
-# Sync to custom directory using PAT token
-clj -M:run -r myorg/hooks-repo -t $GITHUB_TOKEN -d ./project-hooks sync
+# 1. Generate token at: https://github.com/settings/tokens
+# 2. Grant 'repo' scope for private repositories
+# 3. Use with Kokki
+java -jar target/kokki.jar -r owner/repo -t ghp_xxxxxxxxxxxx sync
 ```
 
-### Verbose Output
+## Architecture
 
-Use the `--verbose` flag to see detailed authentication and processing information:
+### Provider Pattern Implementation
 
-```bash
-# See which authentication method is being used
-clj -M:run -r myorg/hooks-repo --ssh --verbose list
+Kokki uses a pluggable provider architecture defined in `src/kokki/core.clj:9-27`:
+
+```clojure
+(defn init-provider! [provider options]
+  (case provider
+    :github-pat (github/->TokenAuthGithub token repo dirs)
+    :github-ssh (github/->SshGithubProvider repo dirs)  
+    :inline     (inline/->InlineProvider dirs)))
 ```
 
-## Development
+**Provider Types:**
+- **GitHub PAT** (`github.clj`): REST API with token authentication
+- **GitHub SSH** (`github.clj`): Uses GitHub CLI or git SSH clone
+- **Inline** (`inline.clj`): Local file system operations
 
-### Available Commands
+### Action Execution Flow
 
-```bash
-# Start REPL
-clj -M:repl
+From `src/kokki/core.clj:29-53`, actions are processed through a unified interface:
 
-# Run tests
-clj -M:test
-
-# Lint code
-clj -M:check
-
-# Build JAR
-clj -T:uberjar
-```
-
-### Project Structure
-
-```
-kokki/
-├── deps.edn              # Dependencies and build configuration
-├── src/kokki/           
-│   └── core.clj         # Main application code
-├── resources/           # Resource files
-├── target/              # Build artifacts
-│   └── kokki.jar       # Standalone executable JAR
-└── README.md           # This file
+```clojure
+(defn execute-action [Provider {:keys [action options]}]
+  (case action
+    :list   (proto/list-hooks Provider)
+    :setup  (proto/apply-hooks Provider) 
+    :install (proto/apply-hooks Provider specific-hook)))
 ```
 
 ### Dependencies
 
-- **Clojure 1.11.1** - Core language
-- **clj-http** - GitHub API client
-- **tools.cli** - Command line parsing
-- **babashka/fs** - File system operations  
-- **babashka/process** - Shell command execution
-- **cheshire** - JSON processing
-- **tools.logging** - Logging infrastructure
+- **clj-http**: GitHub API client 
+- **babashka/fs**: File system operations
+- **babashka/process**: Shell command execution
+- **tools.cli**: Command line parsing
+- **cheshire**: JSON processing
 
-## GitHub Integration
+## Development
 
-### Authentication Methods
-
-Kokki supports multiple authentication methods for accessing GitHub repositories:
-
-#### 1. SSH Authentication (Recommended)
-
-SSH authentication uses your existing SSH keys and doesn't require managing tokens.
-
-**How it works:**
-- **GitHub CLI Method**: If `gh` CLI is installed and authenticated, kokki uses it for API requests
-- **Git SSH Method**: If GitHub CLI is not available, kokki clones the repository via SSH and reads hooks locally
-
-**Setup:**
+### Build Commands
 ```bash
-# Generate SSH key if you don't have one
-ssh-keygen -t ed25519 -C "your_email@example.com"
-
-# Add to SSH agent
-ssh-add ~/.ssh/id_ed25519
-
-# Add public key to GitHub
-cat ~/.ssh/id_ed25519.pub
-# Copy output and add at: https://github.com/settings/keys
-
-# Optional: Install GitHub CLI for better performance
-# macOS: brew install gh
-# Other platforms: https://github.com/cli/cli#installation
-gh auth login
+clj -T:uberjar              # Build standalone JAR
+clj -M:test                 # Run test suite  
+clj -M:check                # Lint code
+clj -M:repl                 # Start development REPL
 ```
 
-#### 2. Personal Access Token (PAT)
+### Project Structure
+```
+kokki/
+├── src/kokki/
+│   ├── app.clj            # Main entry point and CLI handling
+│   ├── cli.clj            # Command line argument parsing  
+│   ├── core.clj           # Provider initialization and action execution
+│   ├── constant.clj       # Application constants
+│   └── providers/
+│       ├── github.clj     # GitHub API and SSH implementations
+│       ├── inline.clj     # Local file system provider
+│       ├── proto.clj      # Provider protocol definition
+│       └── utils.clj      # Shared utilities
+├── demo-hooks/            # Example hooks repository
+├── target/kokki.jar       # Standalone executable
+└── deps.edn              # Dependencies and build config
+```
 
-Traditional token-based authentication.
+## Implementation Details
 
-**Setup:**
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Generate a new token with `repo` scope (for private repos) or `public_repo` scope (for public repos)
-3. Use the token with the `-t` option
+### Commit History
 
-### API Usage
+**Initial Implementation** (commit `6c4610a`):
+- Added comprehensive git hooks management with SSH/PAT authentication
+- Implemented multi-provider architecture with GitHub and inline providers
+- Created CLI interface with setup, list, sync, and install commands
+- Added support for both clj command and standalone JAR execution
+- Included configurable directories and verbose debugging
+- Built complete documentation with usage examples
 
-Kokki interacts with GitHub through multiple methods:
+### Error Handling
 
-- **GitHub CLI API**: Direct API calls via `gh api` command (fastest)
-- **Git SSH Clone**: Repository cloning via SSH for hook extraction
-- **GitHub REST API**: Direct HTTP API calls with PAT tokens
-
-### Repository Access
-
-- **Public repositories**: Both SSH and PAT methods work
-- **Private repositories**: Requires appropriate SSH key access or PAT token with repo permissions
-- **Organization repositories**: Works with both methods if you have access
-
-## Error Handling
-
-Kokki provides clear error messages for common issues:
-
-- **Invalid repository format**: Repository must be in `owner/repo` format
-- **Authentication failures**: Check your GitHub token permissions
-- **Network issues**: Verify internet connectivity and repository accessibility
-- **File system errors**: Ensure proper permissions for hooks directory
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting: `clj -M:test && clj -M:check`
-5. Submit a pull request
+Clear error messages for common scenarios:
+- **Invalid repository format**: Repository must be `owner/repo` format
+- **Authentication failures**: Check GitHub token permissions or SSH keys
+- **Network issues**: Verify connectivity and repository accessibility  
+- **File permissions**: Ensure write access to hooks directory
 
 ## License
 
-[Add your license here]
+Eclipse Public License 2.0
+
+See [LICENSE](LICENSE) file for full license text.
 
 ## Changelog
 
