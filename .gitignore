@@ -1,3 +1,4 @@
+# Clojure
 pom.xml
 pom.xml.asc
 *.jar
@@ -12,3 +13,83 @@ pom.xml.asc
 .lein-failures
 .nrepl-port
 .cpcache/
+.rebel_readline_history
+
+# Clojure LSP
+.lsp/
+.clj-kondo/.cache/
+
+# Java
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~.nib
+local.properties
+
+# Build tools
+.gradle/
+build/
+dist/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
+
+# REPL history
+.nrepl-history
+
+# Testing
+.coverage/
+coverage/
+test-results/
